@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "800808510901",
+    "project_id": "tableagenda",
+    "storage_bucket": "tableagenda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:800808510901:android:1ff7cb866e65beef4465fc",
+        "android_client_info": {
+          "package_name": "com.tabletop.events"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdrxgkR_H95cH6I3XJM9WhaoEISIWyeTc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
