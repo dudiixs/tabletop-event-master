@@ -4,12 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@src/context/ThemeContext';
 import EventDetailsModal from './EventDetailsModal';
 
+
 const { width } = Dimensions.get('window');
+
 
 export default function EventsList({ events, selectedDate }) {
   const { theme, isDark } = useTheme();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
 
   const getCategoryInfo = (eventName, tags) => {
     const name = eventName.toLowerCase();
@@ -43,6 +46,7 @@ export default function EventsList({ events, selectedDate }) {
     return { emoji: "🎮", category: "Evento Especial" };
   };
 
+
   const formatPrice = (price) => {
     if (price === 0) return 'Gratuito';
     return new Intl.NumberFormat('pt-BR', {
@@ -51,8 +55,11 @@ export default function EventsList({ events, selectedDate }) {
     }).format(price);
   };
 
+
+  // ✨ CORRIGIDO: Trata data sem timezone
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('pt-BR', {
       weekday: 'short',
       day: '2-digit',
@@ -60,26 +67,34 @@ export default function EventsList({ events, selectedDate }) {
     });
   };
 
+
+  // ✨ CORRIGIDO: Trata data sem timezone
   const getDateDisplay = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, parseInt(month) - 1, parseInt(day));
     
-    return { day, month };
+    return {
+      day: date.getDate(),
+      month: date.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase()
+    };
   };
+
 
   const getStatusColor = (status) => {
     return status === 'available' ? theme.success : theme.error;
   };
 
+
   const getStatusText = (status) => {
     return status === 'available' ? 'Disponível' : 'Esgotado';
   };
+
 
   const handleEventPress = (event) => {
     setSelectedEvent(event);
     setModalVisible(true);
   };
+
 
   const renderEvent = ({ item, index }) => {
     const { day, month } = getDateDisplay(item.date);
@@ -120,6 +135,7 @@ export default function EventsList({ events, selectedDate }) {
             </View>
           </View>
 
+
           <View 
             style={[
               styles.statusBadge, 
@@ -131,6 +147,7 @@ export default function EventsList({ events, selectedDate }) {
             </Text>
           </View>
         </View>
+
 
         {/* Corpo do Card */}
         <View style={styles.cardBody}>
@@ -144,6 +161,7 @@ export default function EventsList({ events, selectedDate }) {
               {categoryInfo.category}
             </Text>
           </View>
+
 
           {/* Descrição curta */}
           <Text style={[styles.eventDescription, { color: theme.textSecondary }]} numberOfLines={2}>
@@ -172,6 +190,7 @@ export default function EventsList({ events, selectedDate }) {
             </View>
           </View>
 
+
           {/* Indicador de clique */}
           <View style={styles.clickIndicator}>
             <Text style={[styles.clickText, { color: theme.primary }]}>
@@ -181,15 +200,18 @@ export default function EventsList({ events, selectedDate }) {
           </View>
         </View>
 
+
         {/* Gradiente decorativo */}
         <View style={[styles.cardAccent, { backgroundColor: theme.primary }]} />
       </TouchableOpacity>
     );
   };
 
+
   const title = selectedDate 
     ? `Eventos de ${formatDate(selectedDate)}` 
     : 'Todos os Eventos';
+
 
   return (
     <View style={styles.container}>
@@ -224,6 +246,7 @@ export default function EventsList({ events, selectedDate }) {
         />
       )}
 
+
       {/* Modal de detalhes */}
       <EventDetailsModal
         visible={modalVisible}
@@ -234,11 +257,12 @@ export default function EventsList({ events, selectedDate }) {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 20,  // ✨ REDUZIDO de 100 para 20
   },
   titleContainer: {
     flexDirection: 'row',

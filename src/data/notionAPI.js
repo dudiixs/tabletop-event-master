@@ -31,8 +31,11 @@ export const fetchNotionEvents = async () => {
     const data = await response.json();
     console.log(`✅ ${data.results.length} eventos carregados!`);
 
-    const events = data.results.map(event => {
+    const events = data.results.map((event, eventIndex) => {
       const properties = event.properties;
+      
+      // 🔍 DEBUG: Mostrar TODOS os nomes de campos do Notion
+      console.log(`\n🔍 EVENTO ${eventIndex + 1} - Campos disponíveis:`, Object.keys(properties));
       
       // 📅 DATA E HORA - CORRIGIDO PARA UTC
       const dateObj = properties['Data']?.date;
@@ -40,22 +43,18 @@ export const fetchNotionEvents = async () => {
       let eventTime = '20:00';
       
       if (dateObj?.start) {
-        // ✨ CORREÇÃO: Pegar apenas a parte da data (sem considerar timezone)
         const dateString = dateObj.start;
         
-        // Se vier com hora (2024-11-11T19:00:00), pega só a data
         if (dateString.includes('T')) {
-          const datePart = dateString.split('T')[0]; // "2024-11-11"
+          const datePart = dateString.split('T')[0];
           eventDate = datePart;
           
-          // Extrair hora
-          const timePart = dateString.split('T')[1]; // "19:00:00"
+          const timePart = dateString.split('T')[1];
           if (timePart) {
             const [hours, minutes] = timePart.split(':');
             eventTime = `${hours}:${minutes}`;
           }
         } else {
-          // Se vier apenas a data (2024-11-11)
           eventDate = dateString;
         }
         
@@ -64,6 +63,7 @@ export const fetchNotionEvents = async () => {
 
       // 📝 NOME DO EVENTO
       const eventName = properties['Nome']?.title?.[0]?.plain_text || 'Evento sem nome';
+      console.log(`📌 Nome: ${eventName}`);
       
       // 🏷️ TAGS (multi_select)
       const tags = properties['Tags']?.multi_select || [];
@@ -79,14 +79,42 @@ export const fetchNotionEvents = async () => {
       // 💰 PREÇO (number)
       const preco = properties['Preço']?.number || 0;
       
-      // 📝 DESCRIÇÃO COMPLETA (rich_text ou text)
+      // ✨ DESCRIÇÃO COMPLETA - DEBUG COMPLETO
       let descricao = '';
-      if (properties['Descrição']?.rich_text?.[0]?.plain_text) {
-        descricao = properties['Descrição'].rich_text[0].plain_text;
-      } else if (properties['Descrição']?.text?.[0]?.plain_text) {
-        descricao = properties['Descrição'].text[0].plain_text;
-      } else {
+      let descricaoCompleta = [];
+      
+      // 🔍 DEBUG: Verificar se existe campo de descrição
+      console.log(`\n🔍 DEBUG DESCRIÇÃO:`);
+      console.log(`   - properties['Descrição']:`, properties['Descrição']);
+      console.log(`   - properties['Description']:`, properties['Description']);
+      console.log(`   - Todos os campos:`, Object.keys(properties).filter(k => k.toLowerCase().includes('desc')));
+      
+      // Tenta 'Descrição' (português)
+      if (properties['Descrição']?.rich_text && properties['Descrição'].rich_text.length > 0) {
+        console.log(`✅ ENCONTRADO: Campo 'Descrição' com ${properties['Descrição'].rich_text.length} blocos`);
+        descricaoCompleta = properties['Descrição'].rich_text;
+        descricao = properties['Descrição'].rich_text
+          .map(block => block.plain_text)
+          .join('\n');
+      }
+      // Tenta 'Description' (inglês)
+      else if (properties['Description']?.rich_text && properties['Description'].rich_text.length > 0) {
+        console.log(`✅ ENCONTRADO: Campo 'Description' com ${properties['Description'].rich_text.length} blocos`);
+        descricaoCompleta = properties['Description'].rich_text;
+        descricao = properties['Description'].rich_text
+          .map(block => block.plain_text)
+          .join('\n');
+      }
+      // Fallback
+      else {
+        console.log(`⚠️ Nenhum campo de descrição encontrado. Usando fallback.`);
         descricao = `${tagNames ? `Categorias: ${tagNames}. ` : ''}Organizado por ${organizador}`;
+      }
+      
+      console.log(`📝 Descrição completa - Total de blocos: ${descricaoCompleta.length}`);
+      if (descricaoCompleta.length > 0) {
+        console.log(`   Conteúdo do primeiro bloco:`, descricaoCompleta[0]);
+        console.log(`   Annotations:`, descricaoCompleta[0].annotations);
       }
       
       // 📸 IMAGEM (files)
@@ -94,6 +122,7 @@ export const fetchNotionEvents = async () => {
       if (properties['Imagem']?.files?.[0]) {
         const file = properties['Imagem'].files[0];
         imagemUrl = file.file?.url || file.external?.url || '';
+        console.log(`📸 Imagem encontrada: ${imagemUrl ? 'Sim' : 'Não'}`);
       } else if (properties['Capa']?.files?.[0]) {
         const file = properties['Capa'].files[0];
         imagemUrl = file.file?.url || file.external?.url || '';
@@ -105,24 +134,28 @@ export const fetchNotionEvents = async () => {
       // ✅ STATUS (select)
       const status = properties['Status']?.select?.name === 'Esgotado' ? 'sold_out' : 'available';
       
-      return {
+      const eventObject = {
         id: event.id,
         name: eventName,
-        date: eventDate,  // ✨ Agora retorna a data CORRETA
+        date: eventDate,
         time: eventTime,
         price: preco,
         location: sede,
         status: status,
         description: descricao,
+        descricaoCompleta: descricaoCompleta,
         tags: tagNames,
         organizer: organizador,
         image: imagemUrl,
         url: eventUrl
       };
+      
+      console.log(`✅ Evento processado:`, eventObject);
+      
+      return eventObject;
     })
     .filter(event => event.date)
     .filter(event => {
-      // ✨ COMPARAÇÃO DE DATA CORRIGIDA
       const eventDate = new Date(event.date + 'T00:00:00');
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -130,6 +163,7 @@ export const fetchNotionEvents = async () => {
     });
 
     console.log(`📅 ${events.length} eventos futuros processados!`);
+    console.log(`\n🎉 FINAL - Todos os eventos:`, events);
     return events;
 
   } catch (error) {

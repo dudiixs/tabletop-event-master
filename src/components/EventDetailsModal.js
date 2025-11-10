@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Linking,
   Dimensions,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@src/context/ThemeContext';
@@ -17,6 +18,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function EventDetailsModal({ visible, event, onClose }) {
   const { theme, isDark } = useTheme();
+  const [imageLoading, setImageLoading] = useState(true);
 
   if (!event) return null;
 
@@ -29,7 +31,8 @@ export default function EventDetailsModal({ visible, event, onClose }) {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
@@ -54,7 +57,6 @@ export default function EventDetailsModal({ visible, event, onClose }) {
     return status === 'available' ? 'Vagas Disponíveis' : 'Esgotado';
   };
 
-  // Verificar se tem imagem
   const hasImage = event.image && event.image.trim() !== '';
 
   return (
@@ -79,7 +81,7 @@ export default function EventDetailsModal({ visible, event, onClose }) {
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={[
               styles.statusBadgeModal,
               { backgroundColor: getStatusColor(event.status) }
@@ -95,14 +97,21 @@ export default function EventDetailsModal({ visible, event, onClose }) {
             style={styles.modalContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* 📸 IMAGEM DO EVENTO (se existir) */}
+            {/* 📸 IMAGEM DO EVENTO */}
             {hasImage && (
               <View style={styles.imageContainer}>
                 <Image
                   source={{ uri: event.image }}
                   style={styles.eventImage}
                   resizeMode="cover"
+                  onLoadStart={() => setImageLoading(true)}
+                  onLoadEnd={() => setImageLoading(false)}
                 />
+                {imageLoading && (
+                  <View style={styles.imageLoader}>
+                    <ActivityIndicator size="large" color={theme.primary} />
+                  </View>
+                )}
                 <View style={styles.imageOverlay}>
                   <Ionicons name="image" size={20} color="#fff" />
                   <Text style={styles.imageLabel}>Imagem do Evento</Text>
@@ -160,6 +169,25 @@ export default function EventDetailsModal({ visible, event, onClose }) {
               </View>
             </View>
 
+            {/* Organizador */}
+            {event.organizer && (
+              <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
+                <View style={styles.infoRow}>
+                  <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
+                    <Ionicons name="person" size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles.infoText}>
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                      Organizador
+                    </Text>
+                    <Text style={[styles.infoValue, { color: theme.text }]}>
+                      {event.organizer}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Preço */}
             <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
               <View style={styles.infoRow}>
@@ -177,29 +205,87 @@ export default function EventDetailsModal({ visible, event, onClose }) {
               </View>
             </View>
 
-            {/* Descrição */}
+            {/* Descrição Simples */}
             {event.description && (
               <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                  📝 Sobre o Evento
+                  📝 Resumo
                 </Text>
-                <Text style={[styles.descriptionText, { color: theme.textSecondary }]}>
+                <Text style={[styles.descriptionText, { color: theme.textSecondary }]} numberOfLines={3}>
                   {event.description}
                 </Text>
               </View>
             )}
 
-            {/* Tags */}
-            {event.tags && (
+            {/* ✨ Descrição Completa com Rich Text - TODOS os blocos do Notion */}
+            {event.descricaoCompleta && event.descricaoCompleta.length > 0 && (
               <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
                 <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                  🏷️ Tags
+                  📖 Descrição Completa
+                </Text>
+                <View style={styles.richTextContainer}>
+                  {event.descricaoCompleta.map((block, index) => {
+                    const texto = block.plain_text;
+                    const isBold = block.annotations?.bold;
+                    const isItalic = block.annotations?.italic;
+                    const isCode = block.annotations?.code;
+                    const isStrikethrough = block.annotations?.strikethrough;
+
+                    let fontWeight = 'normal';
+                    let fontStyle = 'normal';
+                    let textDecorationLine = 'none';
+                    let backgroundColor = 'transparent';
+                    let borderColor = 'transparent';
+                    let borderWidth = 0;
+
+                    if (isBold) fontWeight = 'bold';
+                    if (isItalic) fontStyle = 'italic';
+                    if (isStrikethrough) textDecorationLine = 'line-through';
+                    if (isCode) {
+                      backgroundColor = theme.primary + '20';
+                      borderColor = theme.primary + '40';
+                      borderWidth = 1;
+                    }
+
+                    return (
+                      <View key={index} style={styles.richTextBlock}>
+                        <Text
+                          style={[
+                            styles.richText,
+                            {
+                              color: theme.textSecondary,
+                              fontWeight: fontWeight,
+                              fontStyle: fontStyle,
+                              textDecorationLine: textDecorationLine,
+                              backgroundColor: backgroundColor,
+                              borderColor: borderColor,
+                              borderWidth: borderWidth,
+                              paddingHorizontal: isCode ? 8 : 0,
+                              paddingVertical: isCode ? 4 : 0,
+                              borderRadius: isCode ? 6 : 0,
+                            }
+                          ]}
+                        >
+                          {texto}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Tags */}
+            {event.tags && event.tags.trim() && (
+              <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                  🏷️ Categorias
                 </Text>
                 <View style={styles.tagsContainer}>
                   {event.tags.split(',').map((tag, index) => (
                     <View
                       key={index}
-                      style={[styles.tag, { backgroundColor: theme.primary + '20' }]}
+                      style={[styles.tag, { backgroundColor: theme.primary + '20', borderColor: theme.primary + '40', borderWidth: 1 }]}
                     >
                       <Text style={[styles.tagText, { color: theme.primary }]}>
                         {tag.trim()}
@@ -219,6 +305,7 @@ export default function EventDetailsModal({ visible, event, onClose }) {
             <TouchableOpacity
               style={styles.whatsappButton}
               onPress={openWhatsApp}
+              activeOpacity={0.8}
             >
               <Ionicons name="logo-whatsapp" size={22} color="#fff" />
               <Text style={styles.whatsappButtonText}>
@@ -282,8 +369,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
-  
-  // 📸 ESTILOS DA IMAGEM
+
+  // 📸 IMAGEM
   imageContainer: {
     width: '100%',
     height: 220,
@@ -291,10 +378,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 16,
     position: 'relative',
+    backgroundColor: '#000',
   },
   eventImage: {
     width: '100%',
     height: '100%',
+  },
+  imageLoader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   imageOverlay: {
     position: 'absolute',
@@ -313,7 +411,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  
+
+  // CARDS
   infoCard: {
     borderRadius: 16,
     padding: 16,
@@ -358,6 +457,8 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 16,
   },
+
+  // TEXTOS
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -367,6 +468,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+
+  // RICH TEXT
+  richTextContainer: {
+    marginTop: 8,
+  },
+  richTextBlock: {
+    marginBottom: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  richText: {
+    fontSize: 15,
+    lineHeight: 22,
+    flex: 1,
+  },
+
+  // TAGS
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -381,6 +499,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+
+  // FOOTER
   modalFooter: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -406,3 +526,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
+  

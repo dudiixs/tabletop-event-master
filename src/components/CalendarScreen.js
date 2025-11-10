@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import EventsList from './EventsList';
 import LoadingScreen from './LoadingScreen';
 
+
 export default function CalendarScreen({ onBack, cacheConfig }) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -21,9 +22,11 @@ export default function CalendarScreen({ onBack, cacheConfig }) {
   const [allNotionEvents, setAllNotionEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
     loadNotionEvents();
   }, []);
+
 
   const loadNotionEvents = async () => {
     try {
@@ -60,17 +63,24 @@ export default function CalendarScreen({ onBack, cacheConfig }) {
     }
   };
 
+
+  // ✨ CORRIGIDO: Garante que a data é tratada sem timezone
   const handleDayPress = (day) => {
-    const dateString = day.dateString;
+    const dateString = day.dateString; // "2024-11-01"
+    
+    console.log('📅 Dia clicado:', dateString);
+    
     setSelectedDate(dateString);
     
     if (dateString && allNotionEvents.length > 0) {
       const dayEvents = getEventsForDateFromNotion(allNotionEvents, dateString);
+      console.log(`📋 Eventos encontrados para ${dateString}:`, dayEvents.length);
       setEvents(dayEvents);
     } else {
       setEvents(getAllEventsFromNotion(allNotionEvents));
     }
   };
+
 
   const getMarkedDates = () => {
     return {
@@ -84,6 +94,7 @@ export default function CalendarScreen({ onBack, cacheConfig }) {
     };
   };
 
+
   if (loading) {
     const isFromCache = cacheConfig && cacheConfig.isValidCache();
     
@@ -94,6 +105,7 @@ export default function CalendarScreen({ onBack, cacheConfig }) {
       />
     );
   }
+
 
   return (
     <ScrollView 
@@ -139,6 +151,7 @@ export default function CalendarScreen({ onBack, cacheConfig }) {
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
