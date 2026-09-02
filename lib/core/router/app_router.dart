@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/calendar/calendar_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/preferences/interests_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/weekly/weekly_screen.dart';
 
@@ -19,6 +20,7 @@ abstract final class AppRoutes {
   static const home = '/';
   static const weekly = '/semana';
   static const calendar = '/calendario';
+  static const interests = '/avisos';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -43,6 +45,12 @@ GoRouter buildRouter() => GoRouter(
               path: AppRoutes.calendar,
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: CalendarScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.interests,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: InterestsScreen(),
               ),
             ),
           ],

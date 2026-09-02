@@ -6,6 +6,7 @@ import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../data/events_providers.dart';
 import '../common/state_views.dart';
+import '../preferences/interests_screen.dart';
 import 'featured_event_card.dart';
 
 /// The landing screen: where to go, plus one event worth looking at.
@@ -131,6 +132,8 @@ class _NavigationCards extends ConsumerWidget {
                 : '$totalCount na agenda',
             onTap: () => context.go('/calendario'),
           ),
+          const SizedBox(height: 14),
+          InterestsSummaryCard(onTap: () => context.go('/avisos')),
         ],
       ),
     );

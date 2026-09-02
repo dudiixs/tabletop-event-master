@@ -6,7 +6,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'data/events_providers.dart';
-import 'notifications/reminder_controller.dart';
+import 'notifications/subscription_controller.dart';
 
 class TableTopApp extends ConsumerStatefulWidget {
   const TableTopApp({super.key});
@@ -26,7 +26,7 @@ class _TableTopAppState extends ConsumerState<TableTopApp> {
     // whatever the user asked for and forget what no longer applies.
     ref.listenManual(agendaProvider, (previous, next) {
       if (next.hasValue) {
-        ref.read(remindersProvider.notifier).reconcile();
+        ref.read(subscriptionsProvider.notifier).reconcile();
       }
     });
   }

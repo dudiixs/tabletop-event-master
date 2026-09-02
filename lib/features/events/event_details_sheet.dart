@@ -9,7 +9,7 @@ import '../../core/theme/app_palette.dart';
 import '../../data/events_providers.dart';
 import '../../domain/event.dart';
 import '../../notifications/reminder_service.dart';
-import 'event_card.dart' show ReminderBell;
+import 'going_control.dart';
 import 'event_status_chip.dart';
 import 'rich_text_view.dart';
 
@@ -166,7 +166,7 @@ class _Header extends StatelessWidget {
                 ),
               ),
               if (ReminderService.isSupported)
-                ReminderBell(event: event, onBrand: true),
+                GoingIconButton(event: event, onBrand: true),
               IconButton(
                 onPressed: () => Navigator.of(context).maybePop(),
                 tooltip: 'Fechar',
@@ -422,20 +422,29 @@ class _Footer extends ConsumerWidget {
         color: palette.surface,
         border: Border(top: BorderSide(color: palette.border)),
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: () => _openWhatsApp(context, ref),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF25D366),
-            padding: const EdgeInsets.symmetric(vertical: 15),
+      child: Column(
+        children: [
+          // "Vou nesse" acima e em largura cheia: e a acao principal da tela.
+          if (ReminderService.isSupported) ...[
+            SizedBox(width: double.infinity, child: GoingButton(event: event)),
+            const SizedBox(height: 10),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _openWhatsApp(context, ref),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              icon: const Icon(AppIcons.whatsapp, size: 20),
+              label: const Text(
+                'Entrar em contato',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
-          icon: const Icon(AppIcons.whatsapp, size: 20),
-          label: const Text(
-            'Entrar em contato',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-          ),
-        ),
+        ],
       ),
     );
   }

@@ -70,7 +70,10 @@ Event testEvent({
 /// Not `TableTopApp` itself, so a test can mount one screen instead of the
 /// whole router — but the same theme and localizations, so what the test sees
 /// is what the app renders.
-Future<void> pumpScreen(
+///
+/// Returns the container, so a test can also drive a controller directly
+/// instead of only through taps.
+Future<ProviderContainer> pumpScreen(
   WidgetTester tester,
   Widget child, {
   FakeDataSource? dataSource,
@@ -86,17 +89,22 @@ Future<void> pumpScreen(
     ..devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      appConfigProvider.overrideWithValue(
+        const AppConfig(backend: EventsBackend.fixtures),
+      ),
+      if (dataSource != null)
+        eventsDataSourceProvider.overrideWithValue(dataSource),
+      ...overrides,
+    ],
+  );
+  addTearDown(container.dispose);
+
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(preferences),
-        appConfigProvider.overrideWithValue(
-          const AppConfig(backend: EventsBackend.fixtures),
-        ),
-        if (dataSource != null)
-          eventsDataSourceProvider.overrideWithValue(dataSource),
-        ...overrides,
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: MaterialApp(
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
@@ -111,6 +119,8 @@ Future<void> pumpScreen(
       ),
     ),
   );
+
+  return container;
 }
 
 /// Lets the agenda future resolve and the screen settle.

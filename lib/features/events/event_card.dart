@@ -4,12 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/format/formatters.dart';
 import '../../core/theme/app_palette.dart';
-import '../../data/events_providers.dart';
 import '../../domain/calendar_date.dart';
 import '../../domain/event.dart';
-import '../../notifications/reminder_controller.dart';
 import '../../notifications/reminder_service.dart';
 import 'event_status_chip.dart';
+import 'going_control.dart';
 
 /// One event in a list.
 class EventCard extends ConsumerWidget {
@@ -127,7 +126,7 @@ class EventCard extends ConsumerWidget {
                       _PriceTag(event: event),
                       if (ReminderService.isSupported) ...[
                         const SizedBox(width: 4),
-                        ReminderBell(event: event),
+                        GoingIconButton(event: event),
                       ],
                     ],
                   ),
@@ -253,63 +252,5 @@ class _PriceTag extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// The bell that sets or clears an event's reminder.
-///
-/// The whole point of the notification plumbing the Expo app carried and never
-/// used. Feedback is a snack bar, because a silent toggle on something that
-/// happens hours later gives no confidence it worked.
-class ReminderBell extends ConsumerWidget {
-  const ReminderBell({super.key, required this.event, this.onBrand = false});
-
-  final Event event;
-
-  /// Rendered on the brand-coloured header rather than on a card.
-  final bool onBrand;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final isSet = ref.watch(remindersProvider).contains(event.id);
-    final color = onBrand
-        ? palette.onBrand
-        : (isSet ? palette.warning : palette.textSecondary);
-
-    return IconButton(
-      onPressed: () => _toggle(context, ref),
-      visualDensity: VisualDensity.compact,
-      tooltip: isSet ? 'Remover lembrete' : 'Avisar antes do evento',
-      icon: Icon(
-        isSet ? AppIcons.bellOn : AppIcons.bellOff,
-        size: 20,
-        color: color,
-      ),
-    );
-  }
-
-  Future<void> _toggle(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final leadHours =
-        ref.read(appConfigProvider).reminderLeadTime.inHours;
-
-    final result = await ref.read(remindersProvider.notifier).toggle(event);
-    if (!context.mounted) return;
-
-    final message = switch (result) {
-      ReminderResult.scheduled => 'Avisaremos ${leadHours}h antes do evento.',
-      ReminderResult.removed => 'Lembrete removido.',
-      ReminderResult.tooLate =>
-        'Este evento começa em menos de ${leadHours}h — não dá tempo de avisar.',
-      ReminderResult.denied =>
-        'Ative as notificações nos ajustes para receber lembretes.',
-      ReminderResult.unsupported =>
-        'Lembretes só funcionam no app instalado no celular.',
-    };
-
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
