@@ -1,0 +1,171 @@
+{
+  "_comment": "Sample agenda for development, widget tests and the web build. Dates are written as dayOffset (days from today) so the week view is never empty. Same JSON shape the proxy backend returns — see ProxyDataSource for the contract.",
+  "events": [
+    {
+      "id": "fx-hoje-pokemon",
+      "name": "Liga Pokémon TCG — Etapa Regional",
+      "dayOffset": 0,
+      "time": "19:30",
+      "price": 35.5,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Eduardo Martins",
+      "tags": ["Competitivo", "Pokémon", "Premiado"],
+      "pageUrl": "https://example.com/liga-pokemon",
+      "description": [
+        { "text": "Etapa válida para o ranking regional. Traga seu " },
+        { "text": "deck de 60 cartas", "bold": true },
+        { "text": " e a " },
+        { "text": "decklist", "code": true },
+        { "text": " preenchida. Inscrições até as 19h." }
+      ]
+    },
+    {
+      "id": "fx-hoje-boardgame",
+      "name": "Noite de Board Games Abertos",
+      "dayOffset": 0,
+      "time": "20:00",
+      "price": 0,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Equipe TableTop",
+      "tags": ["Casual", "Board Games"],
+      "description": "Mesa livre com mais de 200 títulos do acervo. Entrada gratuita, chega quem quiser."
+    },
+    {
+      "id": "fx-amanha-magic",
+      "name": "Magic: The Gathering — Draft Semanal",
+      "dayOffset": 1,
+      "time": "19:00",
+      "price": 45,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Bruno Salles",
+      "tags": ["Draft", "Magic"],
+      "description": [
+        { "text": "Draft de " },
+        { "text": "Foundations", "italic": true },
+        { "text": ". Três boosters por jogador, premiação em " },
+        { "text": "boosters", "bold": true },
+        { "text": " para os dois primeiros." }
+      ]
+    },
+    {
+      "id": "fx-2-rpg",
+      "name": "Mesa de RPG — Tormenta 20",
+      "dayOffset": 2,
+      "time": "18:30",
+      "price": 25,
+      "location": "TableTop Campolim",
+      "status": "soldOut",
+      "organizer": "Ana Prado",
+      "tags": ["RPG", "Campanha"],
+      "description": "Sessão 4 da campanha em curso. Mesa fechada, mas entre na fila de espera pelo WhatsApp."
+    },
+    {
+      "id": "fx-3-yugioh",
+      "name": "Yu-Gi-Oh! Torneio Advanced",
+      "dayOffset": 3,
+      "time": "14:00",
+      "price": 30,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Carlos Nunes",
+      "tags": ["Competitivo", "Yu-Gi-Oh!"],
+      "description": [
+        { "text": "Formato Advanced, banlist atual. " },
+        { "text": "Chegue 30 minutos antes", "bold": true, "underline": true },
+        { "text": " para o credenciamento." }
+      ]
+    },
+    {
+      "id": "fx-4-digimon",
+      "name": "Digimon Card Game — Encontro Iniciantes",
+      "dayOffset": 4,
+      "time": "19:00",
+      "location": "TableTop Campolim",
+      "status": "available",
+      "organizer": "Equipe TableTop",
+      "tags": ["Iniciante", "Digimon"],
+      "description": "Decks emprestados para quem está começando. Sem preço definido ainda — confirme pelo WhatsApp."
+    },
+    {
+      "id": "fx-6-gundam",
+      "name": "Gundam Card Game — Lançamento",
+      "dayOffset": 6,
+      "time": "16:00",
+      "price": 60,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Equipe TableTop",
+      "tags": ["Lançamento", "Gundam"],
+      "description": [
+        { "text": "Evento de pré-lançamento com kit exclusivo. " },
+        { "text": "Vagas limitadas a 16 jogadores.", "bold": true }
+      ]
+    },
+    {
+      "id": "fx-8-campeonato",
+      "name": "Campeonato Interno de Catan",
+      "dayOffset": 8,
+      "time": "13:00",
+      "price": 20,
+      "location": "TableTop Campolim",
+      "status": "available",
+      "organizer": "Ana Prado",
+      "tags": ["Torneio", "Board Games"],
+      "description": "Chaves de quatro jogadores, eliminatória simples. Troféu e crédito na loja para o campeão."
+    },
+    {
+      "id": "fx-12-pokemon",
+      "name": "Pokémon TCG — Pré-Release",
+      "dayOffset": 12,
+      "time": "15:00",
+      "price": 55,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Eduardo Martins",
+      "tags": ["Pré-Release", "Pokémon"],
+      "description": "Build & Battle box inclusa na inscrição. Formato de 4 rodadas suíças."
+    },
+    {
+      "id": "fx-15-adiado",
+      "name": "Maratona de Jogos Cooperativos",
+      "dayOffset": 15,
+      "time": "10:00",
+      "price": 40,
+      "location": "TableTop Campolim",
+      "status": "postponed",
+      "organizer": "Equipe TableTop",
+      "tags": ["Cooperativo", "Board Games"],
+      "description": [
+        { "text": "Adiado. ", "bold": true },
+        { "text": "A nova data será anunciada em breve — o valor pago fica como crédito." }
+      ]
+    },
+    {
+      "id": "fx-22-especial",
+      "name": "Feira de Troca de Cartas",
+      "dayOffset": 22,
+      "time": "11:00",
+      "price": 0,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Comunidade TableTop",
+      "tags": ["Comunidade", "Troca"],
+      "description": "Traga suas cartas repetidas. Mesas de troca livres o dia inteiro, sem inscrição."
+    },
+    {
+      "id": "fx-ontem-passado",
+      "name": "Torneio de Magic — Etapa Encerrada",
+      "dayOffset": -2,
+      "time": "19:00",
+      "price": 45,
+      "location": "TableTop Sorocaba",
+      "status": "available",
+      "organizer": "Bruno Salles",
+      "tags": ["Magic"],
+      "description": "Evento já realizado — existe na fixture para provar que o filtro de eventos futuros o exclui."
+    }
+  ]
+}
