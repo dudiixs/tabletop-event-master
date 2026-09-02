@@ -6,7 +6,7 @@ import '../../core/format/formatters.dart';
 import '../../core/theme/app_palette.dart';
 import '../../domain/calendar_date.dart';
 import '../../domain/event.dart';
-import '../../notifications/reminder_service.dart';
+import '../../notifications/subscription_controller.dart';
 import 'event_status_chip.dart';
 import 'going_control.dart';
 
@@ -124,7 +124,7 @@ class EventCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 10),
                       _PriceTag(event: event),
-                      if (ReminderService.isSupported) ...[
+                      if (ref.watch(remindersSupportedProvider)) ...[
                         const SizedBox(width: 4),
                         GoingIconButton(event: event),
                       ],

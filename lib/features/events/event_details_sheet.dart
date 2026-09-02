@@ -8,7 +8,7 @@ import '../../core/format/formatters.dart';
 import '../../core/theme/app_palette.dart';
 import '../../data/events_providers.dart';
 import '../../domain/event.dart';
-import '../../notifications/reminder_service.dart';
+import '../../notifications/subscription_controller.dart';
 import 'going_control.dart';
 import 'event_status_chip.dart';
 import 'rich_text_view.dart';
@@ -132,13 +132,13 @@ class EventDetailsSheet extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({required this.event});
 
   final Event event;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
 
     return Container(
@@ -165,7 +165,7 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ),
-              if (ReminderService.isSupported)
+              if (ref.watch(remindersSupportedProvider))
                 GoingIconButton(event: event, onBrand: true),
               IconButton(
                 onPressed: () => Navigator.of(context).maybePop(),
@@ -407,14 +407,53 @@ class _PageLinkButton extends StatelessWidget {
   }
 }
 
-class _Footer extends ConsumerWidget {
+/// The sheet footer: the WhatsApp button, which is also how someone signs up.
+///
+/// Signing up for a TableTop event happens in the WhatsApp conversation — that
+/// was true before this app existed and stays true. So tapping "Entrar em
+/// contato" is the moment the person commits, and it is what marks them as
+/// going and starts the reminders.
+///
+/// Two rules fall out of that:
+///
+/// * **WhatsApp opens first, always.** Recording the presence is instant and a
+///   permission dialog never gets in front of the tap. When notifications are
+///   not allowed yet, the footer asks afterwards, on screen, with the reason
+///   visible.
+/// * **It says so before the tap.** A button that quietly subscribes you to
+///   notifications is a trick; a line of text under it is not.
+class _Footer extends ConsumerStatefulWidget {
   const _Footer({required this.event});
 
   final Event event;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Footer> createState() => _FooterState();
+}
+
+class _FooterState extends ConsumerState<_Footer> {
+  /// Null until checked. False means the presence is recorded but nothing is
+  /// scheduled, so the footer offers to fix that.
+  bool? _notificationsAllowed;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPermission();
+  }
+
+  Future<void> _refreshPermission() async {
+    if (!ref.read(remindersSupportedProvider)) return;
+    final allowed =
+        await ref.read(reminderServiceProvider).areNotificationsEnabled();
+    if (mounted) setState(() => _notificationsAllowed = allowed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final palette = context.palette;
+    final going = ref.watch(subscriptionsProvider).contains(widget.event.id);
+    final canRemind = ref.watch(remindersSupportedProvider);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -423,51 +462,182 @@ class _Footer extends ConsumerWidget {
         border: Border(top: BorderSide(color: palette.border)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // "Vou nesse" acima e em largura cheia: e a acao principal da tela.
-          if (ReminderService.isSupported) ...[
-            SizedBox(width: double.infinity, child: GoingButton(event: event)),
+          if (going && canRemind) ...[
+            _GoingStrip(
+              key: const Key('going-strip'),
+              event: widget.event,
+              needsPermission: _notificationsAllowed == false,
+              onEnable: _enableReminders,
+            ),
             const SizedBox(height: 10),
           ],
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => _openWhatsApp(context, ref),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-              icon: const Icon(AppIcons.whatsapp, size: 20),
-              label: const Text(
-                'Entrar em contato',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
+          FilledButton.icon(
+            onPressed: _contactAndMark,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              padding: const EdgeInsets.symmetric(vertical: 15),
+            ),
+            icon: const Icon(AppIcons.whatsapp, size: 20),
+            label: const Text(
+              'Entrar em contato',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
             ),
           ),
+          // The disclosure, only before the fact — once they are marked, the
+          // strip above says it better.
+          if (!going && canRemind) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Ao entrar em contato você fica marcado neste evento e passa a '
+              'receber os avisos.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: palette.textSecondary, fontSize: 12),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Future<void> _openWhatsApp(BuildContext context, WidgetRef ref) async {
+  Future<void> _contactAndMark() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final opened = await _openWhatsApp();
+
+    // Marked either way: the tap is the intent, and WhatsApp failing to open is
+    // a problem with the phone, not a change of mind. The strip above and the
+    // bell in the header both undo it in one tap.
+    final result =
+        await ref.read(subscriptionsProvider.notifier).markGoing(widget.event);
+    await _refreshPermission();
+    if (!mounted) return;
+
+    if (!opened) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text(
+            'Não foi possível abrir o WhatsApp. Sua presença ficou marcada.',
+          ),
+        ));
+      return;
+    }
+
+    // A snackbar would be long gone by the time they come back from WhatsApp,
+    // so only the outcomes that need no follow-up are announced that way. The
+    // rest is on the strip, which is still there when they return.
+    if (result == SubscriptionResult.subscribedTooLate ||
+        result == SubscriptionResult.subscribedQueued) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(subscriptionMessage(result))));
+    }
+  }
+
+  Future<void> _enableReminders() async {
+    final granted =
+        await ref.read(subscriptionsProvider.notifier).enableReminders();
+    await _refreshPermission();
+    if (!mounted || granted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(
+        content: Text('Ative as notificações nos ajustes do celular.'),
+      ));
+  }
+
+  Future<bool> _openWhatsApp() async {
     final config = ref.read(appConfigProvider);
-    final message = 'Olá! 👋 Gostaria de mais informações sobre o evento:\n\n'
+    final event = widget.event;
+
+    // Written as the sign-up request it now is, rather than a vague question.
+    final message = 'Olá! 👋 Quero garantir minha vaga neste evento:\n\n'
         '🎯 *${event.name}*\n'
         '📅 ${Fmt.fullDate(event.day)} às ${Fmt.time(event)}\n'
         '📍 ${event.location}\n'
         '💰 ${Fmt.price(event)}\n\n'
-        'Poderia me dar mais detalhes?';
+        'Como faço a inscrição?';
 
     final uri = Uri.https('wa.me', '/${config.whatsappNumber}', {
       'text': message,
     });
 
-    final messenger = ScaffoldMessenger.of(context);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (!context.mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
-      );
-    }
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
+/// Confirms that the person is marked, and undoes it in one tap.
+class _GoingStrip extends ConsumerWidget {
+  const _GoingStrip({
+    super.key,
+    required this.event,
+    required this.needsPermission,
+    required this.onEnable,
+  });
+
+  final Event event;
+  final bool needsPermission;
+  final VoidCallback onEnable;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: context.tint(palette.warning, 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.tint(palette.warning, 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(AppIcons.bellOn, size: 20, color: palette.warning),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Você vai neste evento',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontSize: 14.5),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  needsPermission
+                      ? 'Ative as notificações para receber os avisos.'
+                      : 'Avisamos $reminderTiersDescription antes.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: palette.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          if (needsPermission)
+            TextButton(
+              onPressed: onEnable,
+              style: TextButton.styleFrom(foregroundColor: palette.warning),
+              child: const Text('Ativar'),
+            )
+          else
+            IconButton(
+              onPressed: () => toggleGoing(context, ref, event),
+              tooltip: 'Não vou mais',
+              icon:
+                  Icon(AppIcons.close, size: 18, color: palette.textSecondary),
+            ),
+        ],
+      ),
+    );
   }
 }

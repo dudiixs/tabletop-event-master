@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tabletop_events/domain/event_category.dart';
-import 'package:tabletop_events/features/events/going_control.dart';
 import 'package:tabletop_events/features/preferences/interests_screen.dart';
 import 'package:tabletop_events/features/weekly/weekly_screen.dart';
 import 'package:tabletop_events/notifications/interests_controller.dart';
@@ -137,11 +136,10 @@ void main() {
   });
 
   group('"vou nesse evento"', () {
-    testWidgets('the sheet leads with it, above the WhatsApp button',
+    testWidgets('the WhatsApp button is the only footer action',
         (tester) async {
-      // On this test platform local notifications are unsupported, so the
-      // control is hidden — exactly as it is on web. The WhatsApp button,
-      // which works everywhere, stays.
+      // Signing up happens in the WhatsApp conversation, so the contact button
+      // carries it — there is no second "vou nesse" button competing with it.
       final source = FakeDataSource(events: [
         testEvent(id: 'a', name: 'Draft Semanal', dayOffset: 1),
       ]);
@@ -152,7 +150,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('Entrar em contato'), findsOne);
-      expect(find.byType(GoingButton), findsNothing);
+      expect(find.text('Vou nesse evento'), findsNothing);
     });
 
     testWidgets('marking still records the interest where it cannot notify',

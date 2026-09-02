@@ -8,29 +8,8 @@ import 'package:timezone/timezone.dart' as tz;
 import '../core/format/formatters.dart';
 import '../domain/event.dart';
 import 'reminder_plan.dart';
+import 'reminder_scheduler.dart';
 import 'reminder_tier.dart';
-
-/// What happened when reminders were scheduled for an event.
-class ReminderOutcome {
-  const ReminderOutcome({
-    required this.scheduled,
-    required this.skippedTooLate,
-    required this.exactTiming,
-  });
-
-  /// The tiers that actually got scheduled.
-  final List<ReminderTier> scheduled;
-
-  /// Tiers whose fire time had already passed — an event starting in 20 minutes
-  /// cannot be announced an hour ahead.
-  final List<ReminderTier> skippedTooLate;
-
-  /// Whether the OS will fire these at the exact minute. False means Android
-  /// denied the exact-alarm permission and the five-minute warning may drift.
-  final bool exactTiming;
-
-  bool get isEmpty => scheduled.isEmpty;
-}
 
 /// Schedules the local reminders for an event.
 ///
@@ -43,7 +22,7 @@ class ReminderOutcome {
 /// no dependency on FCM delivery latency. Push is the wrong tool for "starts in
 /// five minutes" — it is the right tool for things the phone cannot know, which
 /// is why a new event or a cancellation goes over FCM instead.
-class ReminderService {
+class ReminderService implements ReminderScheduler {
   ReminderService({FlutterLocalNotificationsPlugin? plugin})
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
@@ -71,17 +50,20 @@ class ReminderService {
   /// Scheduling needs a device clock and a notification service; the web build
   /// has neither, so the UI hides the control instead of offering something
   /// that silently does nothing.
-  static bool get isSupported =>
+  static bool get platformSupportsReminders =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
+  @override
+  bool get isSupported => platformSupportsReminders;
+
+  @override
+  int get eventBudget => pendingBudget ~/ ReminderTier.values.length;
 
   /// How many pending notifications this platform tolerates.
   static int get pendingBudget {
-    if (!isSupported) return 0;
+    if (!platformSupportsReminders) return 0;
     return Platform.isIOS ? iosPendingBudget : androidPendingBudget;
   }
-
-  /// How many events can hold a full set of reminders at once.
-  static int get eventBudget => pendingBudget ~/ ReminderTier.values.length;
 
   /// Loads the timezone database and registers the channel.
   ///
@@ -119,6 +101,7 @@ class ReminderService {
   }
 
   /// Asks the OS for permission to post notifications.
+  @override
   Future<bool> requestPermission() async {
     if (!isSupported) return false;
     await initialize();
@@ -134,11 +117,35 @@ class ReminderService {
     return await ios?.requestPermissions(alert: true, sound: true) ?? false;
   }
 
+  /// Whether notifications are already allowed, **without prompting**.
+  ///
+  /// This is what lets the WhatsApp button open WhatsApp immediately instead of
+  /// putting a permission dialog in front of it. If the answer is no, the app
+  /// records the presence anyway and asks for permission later, on screen,
+  /// with the reason visible.
+  @override
+  Future<bool> areNotificationsEnabled() async {
+    if (!isSupported) return false;
+    await initialize();
+
+    if (Platform.isAndroid) {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      return await android?.areNotificationsEnabled() ?? false;
+    }
+
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    final options = await ios?.checkPermissions();
+    return options?.isEnabled ?? false;
+  }
+
   /// Whether the OS will fire alarms at the exact minute requested.
   ///
   /// Android 12 put exact alarms behind `SCHEDULE_EXACT_ALARM`. Without it the
   /// system batches alarms for battery, which can push a notification minutes
   /// late — fatal for the five-minute warning and harmless for the other two.
+  @override
   Future<bool> canScheduleExactly() async {
     if (!isSupported) return false;
     if (Platform.isIOS) return true;
@@ -155,6 +162,7 @@ class ReminderService {
   /// Only meaningful on Android 12+ and only when [canScheduleExactly] is
   /// false. On Android 13+ an app in the alarm-and-calendar category can hold
   /// `USE_EXACT_ALARM` instead, which is granted at install and needs no prompt.
+  @override
   Future<bool> requestExactAlarms() async {
     if (!isSupported || Platform.isIOS) return true;
     await initialize();
@@ -167,13 +175,10 @@ class ReminderService {
   }
 
   /// Schedules every tier that is still in the future for [event].
+  @override
   Future<ReminderOutcome> scheduleFor(Event event) async {
     if (!isSupported) {
-      return const ReminderOutcome(
-        scheduled: [],
-        skippedTooLate: [],
-        exactTiming: false,
-      );
+        return const ReminderOutcome.none();
     }
     await initialize();
 
@@ -229,6 +234,7 @@ class ReminderService {
   }
 
   /// Drops every tier for [event].
+  @override
   Future<void> cancelFor(Event event) async {
     if (!isSupported) return;
     await initialize();
@@ -238,6 +244,7 @@ class ReminderService {
   }
 
   /// Drops everything this app has scheduled.
+  @override
   Future<void> cancelAll() async {
     if (!isSupported) return;
     await initialize();

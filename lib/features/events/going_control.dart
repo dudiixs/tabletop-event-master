@@ -40,53 +40,6 @@ class GoingIconButton extends ConsumerWidget {
   }
 }
 
-/// The full-width "vou nesse evento" button for the detail sheet, where it is
-/// the primary action and deserves a label rather than an icon to decode.
-class GoingButton extends ConsumerWidget {
-  const GoingButton({super.key, required this.event});
-
-  final Event event;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = context.palette;
-    final going = ref.watch(subscriptionsProvider).contains(event.id);
-
-    if (going) {
-      return OutlinedButton.icon(
-        onPressed: () => toggleGoing(context, ref, event),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: palette.warning,
-          side: BorderSide(color: context.tint(palette.warning, 0.5)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        icon: const Icon(AppIcons.bellOn, size: 19),
-        label: Text(
-          'Você vai · avisamos $reminderTiersDescription antes',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-        ),
-      );
-    }
-
-    return FilledButton.icon(
-      onPressed: () => toggleGoing(context, ref, event),
-      style: FilledButton.styleFrom(
-        backgroundColor: palette.primary,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-      icon: const Icon(AppIcons.bellOff, size: 19),
-      label: const Text(
-        'Vou nesse evento',
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
 /// Marks or unmarks [event] and says what happened.
 ///
 /// A reminder fires hours later, so a silent toggle gives no confidence it

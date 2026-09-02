@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../notifications/interests_controller.dart';
-import '../../notifications/reminder_service.dart';
 import '../../notifications/subscription_controller.dart';
 
 /// Where the user picks which games they want to hear about.
@@ -112,7 +111,7 @@ class _RemindersCardState extends ConsumerState<_RemindersCard> {
   }
 
   Future<void> _checkExact() async {
-    if (!ReminderService.isSupported) return;
+    if (!ref.read(remindersSupportedProvider)) return;
     final allowed =
         await ref.read(reminderServiceProvider).canScheduleExactly();
     if (mounted) setState(() => _exactAllowed = allowed);
@@ -122,8 +121,9 @@ class _RemindersCardState extends ConsumerState<_RemindersCard> {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final going = ref.watch(subscriptionsProvider);
+    final eventBudget = ref.watch(reminderServiceProvider).eventBudget;
 
-    if (!ReminderService.isSupported) {
+    if (!ref.watch(remindersSupportedProvider)) {
       return _Notice(
         icon: AppIcons.bellOff,
         text: 'Lembretes só funcionam no app instalado no celular.',
@@ -168,11 +168,11 @@ class _RemindersCardState extends ConsumerState<_RemindersCard> {
                 ),
                 // The iOS ceiling is worth stating once, here, rather than
                 // surprising someone with a reminder that never arrives.
-                if (going.length > ReminderService.eventBudget) ...[
+                if (going.length > eventBudget) ...[
                   const SizedBox(height: 10),
                   Text(
                     'Seu celular guarda lembrete para '
-                    '${ReminderService.eventBudget} eventos por vez. Os mais '
+                    '$eventBudget eventos por vez. Os mais '
                     'próximos vêm primeiro; os outros entram conforme eles '
                     'passam.',
                     style: Theme.of(context)

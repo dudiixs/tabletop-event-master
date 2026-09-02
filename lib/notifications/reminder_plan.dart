@@ -1,4 +1,6 @@
+import '../domain/calendar_date.dart';
 import '../domain/event.dart';
+import '../domain/event_filters.dart';
 import 'reminder_tier.dart';
 
 /// What a device should have scheduled right now.
@@ -77,4 +79,23 @@ List<ReminderTier> liveTiersFor(Event event, {required DateTime now}) {
   return ReminderTier.values
       .where((tier) => tier.fireTimeFor(startsAt).isAfter(now))
       .toList();
+}
+
+/// The marked events that still point at something live, soonest first.
+///
+/// A mark can go stale in three ways: the event was deleted in Notion, its date
+/// moved into the past, or it simply happened. Pruning keeps the bells lit in
+/// the UI honest — and pure, so the rule is tested rather than only observed on
+/// a device.
+List<Event> liveSubscriptions(
+  Set<String> marked,
+  List<Event> agenda, {
+  required DateTime now,
+}) {
+  final byId = {for (final event in agenda) event.id: event};
+  return marked
+      .map((id) => byId[id])
+      .whereType<Event>()
+      .toList()
+      .upcomingFrom(dateOnly(now));
 }
