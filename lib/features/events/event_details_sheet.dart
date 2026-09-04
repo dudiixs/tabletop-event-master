@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/app_icons.dart';
 import '../../core/format/formatters.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
+import '../../core/utils/url_security.dart';
 import '../../data/events_providers.dart';
 import '../../domain/event.dart';
 import '../../notifications/subscription_controller.dart';
@@ -377,10 +378,7 @@ class _PageLinkButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
-          final uri = Uri.tryParse(url);
-          if (uri != null) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
+          await UrlSecurity.openSafeUrl(context, url);
         },
         child: Padding(
           padding: const EdgeInsets.all(18),

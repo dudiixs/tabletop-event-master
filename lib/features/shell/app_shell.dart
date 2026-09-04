@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../data/events_providers.dart';
+import '../auth/auth_controller.dart';
 
 /// The frame every screen sits inside: header, content, WhatsApp button.
 class AppShell extends ConsumerWidget {
@@ -86,7 +88,7 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-/// The brand header: back, logo, theme toggle.
+/// The brand header: back, logo, theme toggle, profile button.
 class AppHeader extends ConsumerWidget {
   const AppHeader({super.key});
 
@@ -104,6 +106,7 @@ class AppHeader extends ConsumerWidget {
 
     final router = GoRouter.of(context);
     final isHome = router.state.matchedLocation == '/';
+    final user = ref.watch(authProvider.notifier).currentUser;
 
     return Container(
       color: palette.brand,
@@ -116,14 +119,13 @@ class AppHeader extends ConsumerWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 52,
+                width: 44,
                 child: isHome
                     ? null
                     : IconButton(
                         onPressed: () => router.go('/'),
                         tooltip: 'Voltar',
-                        icon: Icon(AppIcons.back,
-                            color: palette.onBrand),
+                        icon: Icon(AppIcons.back, color: palette.onBrand),
                       ),
               ),
               Expanded(
@@ -131,20 +133,48 @@ class AppHeader extends ConsumerWidget {
                   child: _Logo(companyName: config.companyName),
                 ),
               ),
-              SizedBox(
-                width: 52,
-                child: IconButton(
-                  onPressed: () => ref
-                      .read(themeModeProvider.notifier)
-                      .toggle(platformBrightness),
-                  tooltip: isDark ? 'Usar tema claro' : 'Usar tema escuro',
-                  icon: Icon(
-                    isDark ? AppIcons.themeLight : AppIcons.themeDark,
-                    size: 21,
-                    color: palette.onBrand,
-                  ),
+              IconButton(
+                onPressed: () => ref
+                    .read(themeModeProvider.notifier)
+                    .toggle(platformBrightness),
+                tooltip: isDark ? 'Usar tema claro' : 'Usar tema escuro',
+                icon: Icon(
+                  isDark ? AppIcons.themeLight : AppIcons.themeDark,
+                  size: 21,
+                  color: palette.onBrand,
                 ),
               ),
+              IconButton(
+                onPressed: () {
+                  if (user != null) {
+                    router.go(AppRoutes.profile);
+                  } else {
+                    router.go(AppRoutes.login);
+                  }
+                },
+                tooltip: user != null ? 'Meu Perfil' : 'Entrar',
+                icon: user != null
+                    ? CircleAvatar(
+                        radius: 13,
+                        backgroundColor: palette.onBrand,
+                        child: Text(
+                          user.name.isNotEmpty
+                              ? user.name[0].toUpperCase()
+                              : 'U',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: palette.brand,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        AppIcons.person,
+                        size: 23,
+                        color: palette.onBrand,
+                      ),
+              ),
+              const SizedBox(width: 4),
             ],
           ),
         ),

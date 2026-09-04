@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/forgot_password_screen.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
 import '../../features/calendar/calendar_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/preferences/interests_screen.dart';
+import '../../features/profile/profile_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/weekly/weekly_screen.dart';
 
-/// The app's routes.
-///
-/// Real routes, which the Expo app never had: it kept the active screen in a
-/// `useState` and switched on a string, so the declared `tabletopevents://`
-/// deep-link scheme could not reach anything, and its router config declared
-/// two screens (`index` and an `explore` tab) that had no files behind them.
-///
-/// Three destinations, each with a URL that works as a deep link and shows up
-/// in the browser address bar on web.
 abstract final class AppRoutes {
   static const home = '/';
   static const weekly = '/semana';
   static const calendar = '/calendario';
   static const interests = '/avisos';
+  static const login = '/login';
+  static const register = '/cadastro';
+  static const forgotPassword = '/esqueci-senha';
+  static const profile = '/perfil';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -51,6 +50,30 @@ GoRouter buildRouter() => GoRouter(
               path: AppRoutes.interests,
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: InterestsScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.login,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: LoginScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.register,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: RegisterScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.forgotPassword,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: ForgotPasswordScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.profile,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: ProfileScreen(),
               ),
             ),
           ],

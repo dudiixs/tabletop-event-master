@@ -1,8 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_palette.dart';
+import '../../core/utils/url_security.dart';
 import '../../domain/event.dart';
 
 /// Renders a Notion rich-text description with its formatting intact.
@@ -105,8 +105,7 @@ class _RichTextViewState extends State<RichTextView> {
   }
 
   Future<void> _open(String href) async {
-    final uri = Uri.tryParse(href);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!mounted) return;
+    await UrlSecurity.openSafeUrl(context, href);
   }
 }
