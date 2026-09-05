@@ -5,6 +5,18 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Sem isto, canScheduleExactNotifications() responde false para sempre no
+         Android 12+, o aviso de 5 minutos cai em alarme inexato (que o sistema
+         agrupa e atrasa) e o botao "Ativar alarmes exatos" da tela do evento
+         nao tem o que conceder.
+
+         Alternativa: USE_EXACT_ALARM e concedida na instalacao e dispensa o
+         prompt, mas so vale para app de alarme/calendario e exige justificar
+         na revisao da Play Store. SCHEDULE_EXACT_ALARM manda o usuario aos
+         ajustes, que e o fluxo que ReminderService.requestExactAlarms() ja
+         implementa. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+
     <application
         android:label="TableTop Events"
         android:name="${applicationName}"
@@ -39,6 +51,35 @@
                 <data android:scheme="tabletopevents"/>
             </intent-filter>
         </activity>
+        <!-- Onde um push recebido com o app fechado e desenhado. Sem isto o
+             Android joga a notificacao no canal "Diversos", que o usuario nao
+             consegue silenciar sem silenciar os lembretes junto. Tem que ser
+             igual a LocalAnnouncementPresenter.channelId. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="event_announcements" />
+
+        <!-- Os alarmes vivem no sistema e o sistema os esquece no reboot. O
+             plugin declara estes receivers no codigo, mas nao no manifest
+             dele, entao o merge nao traz nenhum: sem as duas entradas abaixo o
+             lembrete simplesmente nao volta depois de reiniciar o aparelho.
+
+             MY_PACKAGE_REPLACED cobre a atualizacao do app, e os dois
+             QUICKBOOT cobrem fabricantes que nao emitem BOOT_COMPLETED. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false"/>
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
