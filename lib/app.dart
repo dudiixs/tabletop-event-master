@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,10 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'data/events_providers.dart';
+import 'domain/event.dart';
+import 'features/events/event_details_sheet.dart';
+import 'notifications/interests_controller.dart';
+import 'notifications/push_controller.dart';
 import 'notifications/subscription_controller.dart';
 
 class TableTopApp extends ConsumerStatefulWidget {
@@ -27,8 +32,43 @@ class _TableTopAppState extends ConsumerState<TableTopApp> {
     ref.listenManual(agendaProvider, (previous, next) {
       if (next.hasValue) {
         ref.read(subscriptionsProvider.notifier).reconcile();
+        // A push that named an event may have been waiting for exactly this:
+        // a tap can launch the app from cold, long before the event it points
+        // at has been fetched.
+        _openPendingAnnouncement(next.value!);
       }
     });
+
+    // Start receiving push, then line the topic subscriptions up with the
+    // games the user follows. Reconciling on launch is what repairs a
+    // subscription that failed offline the last time the interests changed.
+    ref.read(pushRouterProvider).start();
+    ref.read(pushTopicsProvider.notifier).reconcile();
+
+    ref.listenManual(interestsProvider, (previous, next) {
+      if (previous == null || !setEquals(previous, next)) {
+        ref.read(pushTopicsProvider.notifier).reconcile();
+      }
+    });
+  }
+
+  /// Opens the event a tapped push named, if it is in the agenda.
+  ///
+  /// Cleared either way. An event can be announced and then pulled from the
+  /// agenda before the tap arrives, and leaving it parked would reopen this
+  /// attempt on every later refresh.
+  void _openPendingAnnouncement(List<Event> agenda) {
+    final announcement = ref.read(pendingAnnouncementProvider);
+    if (announcement == null) return;
+    ref.read(pendingAnnouncementProvider.notifier).state = null;
+
+    final event =
+        agenda.where((item) => item.id == announcement.eventId).firstOrNull;
+    if (event == null) return;
+
+    final context = _router.routerDelegate.navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    EventDetailsSheet.show(context, event);
   }
 
   @override

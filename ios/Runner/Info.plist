@@ -79,5 +79,12 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- Deixa o app acordar para uma mensagem de dados do FCM. Sem isto o
+		     iOS so entrega o push que traz bloco notification, e um payload
+		     data-only e descartado em silencio. -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>
