@@ -10,6 +10,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../data/events_providers.dart';
 import '../auth/auth_controller.dart';
+import '../auth/auth_state.dart';
 
 /// The frame every screen sits inside: header, content, WhatsApp button.
 class AppShell extends ConsumerWidget {
@@ -106,7 +107,13 @@ class AppHeader extends ConsumerWidget {
 
     final router = GoRouter.of(context);
     final isHome = router.state.matchedLocation == '/';
-    final user = ref.watch(authProvider.notifier).currentUser;
+    // Watches the state, not the notifier: the notifier is a stable object, so
+    // watching it never rebuilds this header and the avatar would stay frozen
+    // on whatever it showed at first build -- including through a login.
+    final user = switch (ref.watch(authProvider)) {
+      AuthAuthenticated(:final user) => user,
+      _ => null,
+    };
 
     return Container(
       color: palette.brand,
