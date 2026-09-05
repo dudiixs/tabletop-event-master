@@ -53,3 +53,6 @@ app.*.map.json
 **/local.properties
 **/service-account*.json
 node_modules/
+
+# Estado local do wrangler (dev do Worker em server/)
+.wrangler/

@@ -1,0 +1,28 @@
+name = "tabletop-events"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Guarda a agenda da ultima execucao, para saber o que mudou desde entao.
+# Crie com:  wrangler kv namespace create AGENDA
+# e cole o id devolvido aqui.
+[[kv_namespaces]]
+binding = "AGENDA"
+id = "COLE_O_ID_DO_KV_AQUI"
+
+[triggers]
+# A cada 15 minutos. O Notion e editado a mao por uma pessoa, entao nada muda
+# entre uma execucao e outra na maior parte do dia; o custo e uma consulta ao
+# Notion, e o ganho e a novidade chegar em minutos em vez de no dia seguinte.
+crons = ["*/15 * * * *"]
+
+[vars]
+FIREBASE_PROJECT_ID = "tableagenda"
+
+# Os quatro segredos NUNCA entram neste arquivo — ele vai para o git.
+# Ponha cada um com `wrangler secret put <NOME>`:
+#
+#   NOTION_TOKEN           token da integracao do Notion (leitura e escrita!)
+#   NOTION_DATABASE_ID     id da base de eventos
+#   FIREBASE_CLIENT_EMAIL  client_email do JSON da service account
+#   FIREBASE_PRIVATE_KEY   private_key do mesmo JSON, com os \n literais
+#   ADMIN_TOKEN            qualquer string longa, protege o POST /announce

@@ -1,0 +1,15 @@
+{
+  "name": "tabletop-events-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Proxy da agenda do Notion e emissor de push do TableTop Events",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
