@@ -49,6 +49,7 @@ dependencies:
   timezone: ^0.11.1
   firebase_core: ^4.1.1
   firebase_messaging: ^16.0.2
+  wakelock_plus: ^1.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

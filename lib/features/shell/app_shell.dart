@@ -9,8 +9,7 @@ import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../data/events_providers.dart';
-import '../auth/auth_controller.dart';
-import '../auth/auth_state.dart';
+import 'app_bottom_nav.dart';
 
 /// The frame every screen sits inside: header, content, WhatsApp button.
 class AppShell extends ConsumerWidget {
@@ -22,7 +21,13 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final router = GoRouter.of(context);
-    final isHome = router.state.matchedLocation == '/';
+    // Read off the route state, not `router.state`, and handed down to the
+    // header and the tab bar. Both used to be `const`, which meant Flutter
+    // reused the same widget on every navigation and neither ever noticed
+    // where it was — the back arrow stayed hidden and the tab bar would have
+    // stayed lit on whatever tab opened first.
+    final location = GoRouterState.of(context).uri.path;
+    final isHome = location == AppRoutes.home;
 
     // Paints the system bars to match the header and the page ground. One
     // place, driven by the resolved theme — the Expo app set the status bar
@@ -36,9 +41,9 @@ class AppShell extends ConsumerWidget {
         systemNavigationBarColor: palette.surface,
         systemNavigationBarIconBrightness:
             ThemeData.estimateBrightnessForColor(palette.surface) ==
-                    Brightness.dark
-                ? Brightness.light
-                : Brightness.dark,
+                Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: PopScope(
         // Off the home screen the back gesture returns home; on the home
@@ -57,10 +62,11 @@ class AppShell extends ConsumerWidget {
         child: Scaffold(
           body: Column(
             children: [
-              const AppHeader(),
+              AppHeader(location: location),
               Expanded(child: child),
             ],
           ),
+          bottomNavigationBar: AppBottomNav(location: location),
           floatingActionButton: const _WhatsAppButton(),
         ),
       ),
@@ -89,9 +95,17 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-/// The brand header: back, logo, theme toggle, profile button.
+/// The brand header: back, logo, theme toggle.
+///
+/// The profile used to live up here as an avatar too. It moved to the tab bar
+/// — one door per destination beats two, and the header is now just identity
+/// and the one control that belongs to every screen.
 class AppHeader extends ConsumerWidget {
-  const AppHeader({super.key});
+  const AppHeader({super.key, required this.location});
+
+  /// The path on screen, so the back arrow knows whether there is anywhere to
+  /// go back to.
+  final String location;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -106,14 +120,7 @@ class AppHeader extends ConsumerWidget {
     };
 
     final router = GoRouter.of(context);
-    final isHome = router.state.matchedLocation == '/';
-    // Watches the state, not the notifier: the notifier is a stable object, so
-    // watching it never rebuilds this header and the avatar would stay frozen
-    // on whatever it showed at first build -- including through a login.
-    final user = switch (ref.watch(authProvider)) {
-      AuthAuthenticated(:final user) => user,
-      _ => null,
-    };
+    final isHome = location == AppRoutes.home;
 
     return Container(
       color: palette.brand,
@@ -136,9 +143,7 @@ class AppHeader extends ConsumerWidget {
                       ),
               ),
               Expanded(
-                child: Center(
-                  child: _Logo(companyName: config.companyName),
-                ),
+                child: Center(child: _Logo(companyName: config.companyName)),
               ),
               IconButton(
                 onPressed: () => ref
@@ -150,36 +155,6 @@ class AppHeader extends ConsumerWidget {
                   size: 21,
                   color: palette.onBrand,
                 ),
-              ),
-              IconButton(
-                onPressed: () {
-                  if (user != null) {
-                    router.go(AppRoutes.profile);
-                  } else {
-                    router.go(AppRoutes.login);
-                  }
-                },
-                tooltip: user != null ? 'Meu Perfil' : 'Entrar',
-                icon: user != null
-                    ? CircleAvatar(
-                        radius: 13,
-                        backgroundColor: palette.onBrand,
-                        child: Text(
-                          user.name.isNotEmpty
-                              ? user.name[0].toUpperCase()
-                              : 'U',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: palette.brand,
-                          ),
-                        ),
-                      )
-                    : Icon(
-                        AppIcons.person,
-                        size: 23,
-                        color: palette.onBrand,
-                      ),
               ),
               const SizedBox(width: 4),
             ],

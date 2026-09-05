@@ -122,10 +122,10 @@ void main() {
   });
 
   group('HomeScreen', () {
-    testWidgets('counts the week and the whole agenda', (tester) async {
+    testWidgets('opens on what is happening today', (tester) async {
       final source = FakeDataSource(events: [
-        testEvent(id: 'a', dayOffset: 0),
-        testEvent(id: 'b', dayOffset: 3),
+        testEvent(id: 'a', name: 'Liga de hoje', dayOffset: 0),
+        testEvent(id: 'b', name: 'Draft de quinta', dayOffset: 3),
         testEvent(id: 'c', dayOffset: 20),
         testEvent(id: 'past', dayOffset: -5),
       ]);
@@ -138,9 +138,14 @@ void main() {
       );
       await settle(tester);
 
-      // Two inside the week, three upcoming, the past one counted nowhere.
-      expect(find.text('2 EVENTOS'), findsOne);
-      expect(find.text('3 NA AGENDA'), findsOne);
+      // The headline answers the question people open the app with.
+      expect(find.textContaining('1 evento hoje'), findsOne);
+
+      // The week strip carries the two inside seven days, and neither the one
+      // three weeks out nor the one that already happened.
+      expect(find.text('Liga de hoje'), findsOne);
+      expect(find.text('Draft de quinta'), findsOne);
+      expect(find.text('HOJE'), findsOne);
     });
 
     testWidgets('features an upcoming event', (tester) async {
@@ -169,8 +174,9 @@ void main() {
       await settle(tester);
 
       expect(find.text('🎲 Nada marcado ainda'), findsOne);
-      expect(find.text('NADA ESTA SEMANA'), findsOne);
-      expect(find.text('AGENDA VAZIA'), findsOne);
+      expect(find.text('Nada marcado nos próximos dias'), findsOne);
+      // No week, no strip — an empty carousel is just a stripe of nothing.
+      expect(find.text('Esta semana'), findsNothing);
     });
 
     testWidgets('surfaces a fetch failure in the featured card',

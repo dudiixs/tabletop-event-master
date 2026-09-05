@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/format/formatters.dart';
 import '../../core/theme/app_palette.dart';
@@ -78,6 +80,18 @@ class _WeekRange extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
             ),
+          ),
+          // The calendar lost its own tab when the bar went to five places, so
+          // the week — which is where people land looking for "what's on" —
+          // carries the way through to the whole agenda.
+          TextButton.icon(
+            onPressed: () => context.go(AppRoutes.calendar),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              foregroundColor: palette.primary,
+            ),
+            icon: const Icon(AppIcons.calendarOutline, size: 16),
+            label: const Text('Calendário'),
           ),
         ],
       ),

@@ -17,15 +17,15 @@ import 'package:tabletop_events/features/auth/auth_controller.dart';
 
 import 'app_harness.dart';
 
-/// The header's profile button has to follow the session.
+/// The session has one door, and it is the Perfil tab.
 ///
-/// It watched `authProvider.notifier` instead of `authProvider`, and the
-/// notifier is a stable object: the state could change all it liked and this
-/// header never rebuilt. Because `AppShell` builds it as `const AppHeader()`,
-/// a parent rebuild did not save it either, so the avatar stayed on whatever
-/// the first frame showed until something else in the header changed.
+/// The profile used to be an avatar in the header as well. Two doors to the
+/// same room is one too many, so the header now carries only identity and the
+/// theme toggle — and the session has to show through the tab instead.
 void main() {
-  testWidgets('the header follows the session in and out', (tester) async {
+  testWidgets('the profile lives in the tab bar, not in the header', (
+    tester,
+  ) async {
     initializeDateFormatting(Fmt.locale);
     FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
@@ -36,13 +36,15 @@ void main() {
       ..devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final container = ProviderContainer(overrides: [
-      sharedPreferencesProvider.overrideWithValue(preferences),
-      appConfigProvider.overrideWithValue(
-        const AppConfig(backend: EventsBackend.fixtures),
-      ),
-      eventsDataSourceProvider.overrideWithValue(FakeDataSource()),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(preferences),
+        appConfigProvider.overrideWithValue(
+          const AppConfig(backend: EventsBackend.fixtures),
+        ),
+        eventsDataSourceProvider.overrideWithValue(FakeDataSource()),
+      ],
+    );
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
@@ -63,28 +65,40 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.byTooltip('Entrar'), findsOne);
+    // Nothing about the account up top any more, in either state.
+    expect(find.byTooltip('Entrar'), findsNothing);
     expect(find.byTooltip('Meu Perfil'), findsNothing);
+    expect(find.text('Perfil'), findsOne, reason: 'a aba é o caminho');
 
     // Not awaited: the controller sleeps to fake network latency, and under
     // the test binding's clock that future only completes while the tester
     // pumps. Awaiting it here would hang the test instead of failing it.
-    unawaited(container.read(authProvider.notifier).loginWithEmail(
-          email: 'jogador@tabletop.com.br',
-          password: 'uma-senha-qualquer',
-        ));
+    unawaited(
+      container.read(authProvider.notifier).loginWithEmail(
+        email: 'jogador@tabletop.com.br',
+        password: 'uma-senha-qualquer',
+      ),
+    );
     await tester.pump(const Duration(seconds: 1));
     await settle(tester);
 
-    expect(find.byTooltip('Meu Perfil'), findsOne,
-        reason: 'o avatar aparece assim que a sessão existe');
-    expect(find.text('J'), findsWidgets, reason: 'a inicial do nome');
+    await tester.tap(find.text('Perfil'));
+    await settle(tester);
+
+    expect(
+      find.textContaining('jogador@tabletop.com.br'),
+      findsWidgets,
+      reason: 'a aba mostra a sessão aberta',
+    );
 
     unawaited(container.read(authProvider.notifier).logout());
     await tester.pump(const Duration(seconds: 1));
     await settle(tester);
 
-    expect(find.byTooltip('Entrar'), findsOne,
-        reason: 'e some assim que a sessão acaba');
+    expect(
+      find.textContaining('jogador@tabletop.com.br'),
+      findsNothing,
+      reason: 'e some assim que a sessão acaba',
+    );
   });
 }

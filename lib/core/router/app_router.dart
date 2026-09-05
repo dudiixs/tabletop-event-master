@@ -6,8 +6,11 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/calendar/calendar_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/play/ui/life_counter_screen.dart';
+import '../../features/play/ui/play_screen.dart';
 import '../../features/preferences/interests_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/rentals/rentals_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/weekly/weekly_screen.dart';
 
@@ -20,6 +23,12 @@ abstract final class AppRoutes {
   static const register = '/cadastro';
   static const forgotPassword = '/esqueci-senha';
   static const profile = '/perfil';
+  static const play = '/play';
+  static const rentals = '/locacao';
+
+  /// The board itself. Nested under [play] so the PLAY tab stays lit while a
+  /// match is open, but routed outside the shell — no header, no tab bar.
+  static const lifeCounter = '/play/mesa';
 }
 
 GoRouter buildRouter() => GoRouter(
@@ -76,7 +85,26 @@ GoRouter buildRouter() => GoRouter(
                 child: ProfileScreen(),
               ),
             ),
+            GoRoute(
+              path: AppRoutes.play,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: PlayScreen(),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.rentals,
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: RentalsScreen(),
+              ),
+            ),
           ],
+        ),
+        // Outside the shell on purpose: the life counter takes the whole
+        // screen, in its own dark palette, with no chrome to tap by accident
+        // while four people reach across a table.
+        GoRoute(
+          path: AppRoutes.lifeCounter,
+          builder: (context, state) => const LifeCounterScreen(),
         ),
       ],
       errorBuilder: (context, state) => const _RouteNotFound(),
